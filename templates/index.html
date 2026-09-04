@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A focused workspace for understanding and summarizing text.">
+  <title>Text Analyzer &amp; Summarizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Text Analyzer home">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span>Text Analyzer</span>
+      </a>
+      <span class="status-pill"><span class="status-dot"></span>Analysis workspace</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">Read between the lines</p>
+        <h1 id="page-title">Make meaning<br><em>move faster.</em></h1>
+        <p class="hero-copy">Turn dense writing into useful signals. See the shape of your text, then keep the ideas that matter.</p>
+      </section>
+
+      <section class="workspace" aria-label="Text analysis workspace">
+        <div class="input-panel panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">01 / Input</p>
+              <h2>Bring your text</h2>
+            </div>
+            <span id="live-count" class="live-count">0 words</span>
+          </div>
+          <label class="sr-only" for="source-text">Text to analyze</label>
+          <textarea id="source-text" placeholder="Paste an article, essay, meeting notes, or any text you want to understand..." spellcheck="true"></textarea>
+          <div class="input-footer">
+            <span class="hint">Your text stays in this session.</span>
+            <button id="clear-button" class="button button-quiet" type="button">Clear text</button>
+            <button id="analyze-button" class="button button-primary" type="button"><span>Analyze &amp; summarize</span><span aria-hidden="true">&rarr;</span></button>
+          </div>
+        </div>
+
+        <aside class="metrics-panel panel" aria-labelledby="metrics-title">
+          <div class="panel-heading compact-heading">
+            <div>
+              <p class="section-kicker">02 / Signals</p>
+              <h2 id="metrics-title">Text at a glance</h2>
+            </div>
+            <span class="spark-icon" aria-hidden="true">&#10038;</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric"><span class="metric-label">Words</span><strong id="word-count">0</strong></div>
+            <div class="metric"><span class="metric-label">Characters</span><strong id="character-count">0</strong></div>
+            <div class="metric"><span class="metric-label">Sentences</span><strong id="sentence-count">0</strong></div>
+            <div class="metric"><span class="metric-label">Read time</span><strong><span id="reading-time">0</span> <small>min</small></strong></div>
+          </div>
+          <div class="metric-note"><span class="note-icon" aria-hidden="true">i</span><span>Reading time is estimated at 200 words per minute.</span></div>
+        </aside>
+      </section>
+
+      <section class="summary-panel panel" aria-labelledby="summary-title">
+        <div class="summary-header">
+          <div>
+            <p class="section-kicker">03 / Takeaways</p>
+            <h2 id="summary-title">A clearer point of view</h2>
+          </div>
+          <div class="length-control" role="group" aria-label="Summary length">
+            <span class="control-label">Summary length</span>
+            <div class="segmented-control">
+              <button type="button" data-length="short">Short</button>
+              <button type="button" class="active" data-length="medium">Medium</button>
+              <button type="button" data-length="detailed">Detailed</button>
+            </div>
+          </div>
+        </div>
+        <div id="summary-content" class="summary-content" aria-live="polite">
+          <div class="empty-state"><span class="empty-mark" aria-hidden="true">&darr;</span><p>Your key takeaways will appear here.</p><span>Paste text above and start an analysis.</span></div>
+        </div>
+      </section>
+      <div id="error-message" class="error-message" role="alert" hidden></div>
+    </main>
+
+    <footer><span>Text Analyzer &amp; Summarizer</span><span>Built for clearer thinking</span></footer>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
