@@ -1,28 +1,24 @@
-# Text Analyzer & Summarizer
+# AI Text & Sentiment Analyzer
 
-A single-page Flask application that calculates text metrics and creates an extractive summary through a JSON API.
+A Flask web app that analyzes sentiment and summarizes text using Hugging Face inference APIs.
 
 ## Run locally
 
-1. Create and activate a virtual environment:
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+py app.py
+```
 
-	```powershell
-	py -m venv .venv
-	.\.venv\Scripts\Activate.ps1
-	```
+Open `http://127.0.0.1:5000`.
 
-2. Install the dependency:
+## Hugging Face API key
 
-	```powershell
-	pip install -r requirements.txt
-	```
+Set `HF_API_KEY` in the environment to authenticate inference requests. Keep the token private; do not commit it to this repository. The app can start without a token, but inference requests may be rejected by the model API.
 
-3. Start the development server:
+## Deploy to Render
 
-	```powershell
-	py app.py
-	```
+This repository includes `render.yaml` for a Render web service. Create a new Blueprint from this repository in Render. After deployment, set `HF_API_KEY` in the service environment variables for authenticated inference. Render will provide the public service URL.
 
-4. Open `http://127.0.0.1:5000` in a browser.
-
-The backend calculates word, character, sentence, and reading-time metrics and returns 3 to 5 ranked key sentences based on the selected summary length.
+The start command uses Gunicorn and listens on the port provided by the hosting platform.

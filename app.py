@@ -1,75 +1,67 @@
-from collections import Counter
-import re
-
-from flask import Flask, jsonify, render_template, request
-
+import os
+import requests
+from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Enables cross-origin requests
 
+SENTIMENT_API_URL = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english"
+SUMMARIZE_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 
-STOP_WORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "been", "but", "by",
-    "for", "from", "had", "has", "have", "he", "her", "his", "in", "is",
-    "it", "its", "of", "on", "or", "that", "the", "their", "this", "to",
-    "was", "were", "will", "with", "you", "your", "we", "they", "i",
-}
+# Retrieve API key from environment variable
+HF_API_KEY = os.getenv("HF_API_KEY", "")
+HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"} if HF_API_KEY else {}
 
+def query_hf(api_url, payload):
+    try:
+        response = requests.post(api_url, headers=HEADERS, json=payload, timeout=15)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Hugging Face API Error: {e}")
+        return {"error": str(e)}
 
-def split_sentences(text):
-    return [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", text.strip()) if sentence.strip()]
-
-
-def calculate_metrics(text):
-    words = re.findall(r"\b[\w'-]+\b", text)
-    sentences = split_sentences(text)
-    word_count = len(words)
-    return {
-        "word_count": word_count,
-        "character_count": len(text),
-        "sentence_count": len(sentences),
-        "reading_time": max(1, round(word_count / 200)) if word_count else 0,
-    }
-
-
-def summarize(text, length):
-    sentences = split_sentences(text)
-    if not sentences:
-        return []
-
-    requested_count = {"short": 3, "medium": 4, "detailed": 5}.get(length, 4)
-    word_tokens = re.findall(r"\b[a-zA-Z][a-zA-Z'-]+\b", text.lower())
-    frequencies = Counter(word for word in word_tokens if word not in STOP_WORDS and len(word) > 2)
-
-    if not frequencies:
-        return sentences[:requested_count]
-
-    scored = []
-    for index, sentence in enumerate(sentences):
-        tokens = re.findall(r"\b[a-zA-Z][a-zA-Z'-]+\b", sentence.lower())
-        meaningful = [token for token in tokens if token not in STOP_WORDS and len(token) > 2]
-        score = sum(frequencies[token] for token in meaningful) / max(len(meaningful), 1)
-        scored.append((score, index, sentence))
-
-    selected = sorted(scored, reverse=True)[:min(requested_count, len(sentences))]
-    return [sentence for _, _, sentence in sorted(selected, key=lambda item: item[1])]
-
-
-@app.get("/")
+@app.route("/")
 def home():
     return render_template("index.html")
 
-
-@app.post("/api/analyze")
+@app.route("/analyze", methods=["POST"])
 def analyze():
-    payload = request.get_json(silent=True) or {}
-    text = str(payload.get("text", "")).strip()
-    length = str(payload.get("length", "medium")).lower()
+    data = request.get_json() or {}
+    text = data.get("text", "")
 
-    if not text:
-        return jsonify({"error": "Add some text before analyzing it."}), 400
+    if not text.strip():
+        return jsonify({"error": "Empty text provided"}), 400
 
-    return jsonify({"metrics": calculate_metrics(text), "summary": summarize(text, length)})
+    # Call Sentiment API
+    sentiment_res = query_hf(SENTIMENT_API_URL, {"inputs": text})
+    # Call Summarization API
+    summary_res = query_hf(SUMMARIZE_API_URL, {"inputs": text, "parameters": {"max_length": 100, "min_length": 30}})
 
+    # Process Sentiment Response
+    sentiment_label = "UNKNOWN"
+    sentiment_score = 0.0
+    
+    if isinstance(sentiment_res, list) and len(sentiment_res) > 0:
+        top_res = sentiment_res[0][0] if isinstance(sentiment_res[0], list) else sentiment_res[0]
+        sentiment_label = top_res.get("label", "UNKNOWN")
+        sentiment_score = round(top_res.get("score", 0.0) * 100, 2)
+    elif isinstance(sentiment_res, dict) and "error" in sentiment_res:
+        sentiment_label = "API Error"
+
+    # Process Summary Response
+    summary_text = "Could not generate summary."
+    if isinstance(summary_res, list) and len(summary_res) > 0:
+        summary_text = summary_res[0].get("summary_text", summary_text)
+    elif isinstance(summary_res, dict) and "error" in summary_res:
+        summary_text = f"API Error: {summary_res['error']}"
+
+    return jsonify({
+        "sentiment": sentiment_label,
+        "confidence": f"{sentiment_score}%",
+        "summary": summary_text
+    })
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
